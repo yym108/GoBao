@@ -1,0 +1,13 @@
+*.exe
+*.test
+*.out
+coverage.txt
+.DS_Store
+.idea/
+.vscode/
+bin/
+/server
+workspace/
+
+# 运行时数据：数据库备份 dump、上传的媒体与用户头像等，含真实数据,不入库
+runtime/

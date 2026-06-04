@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package gobao.admin.v1;
+
+option go_package = "github.com/yym108/gobao-proto/gen/go/gobao/admin/v1;adminv1";
+
+service AdminService {
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc GetAdmin(GetAdminRequest) returns (GetAdminResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc ListAdmins(ListAdminsRequest) returns (ListAdminsResponse);
+  rpc CreateAdmin(CreateAdminRequest) returns (CreateAdminResponse);
+  rpc UpdateAdminPassword(UpdateAdminPasswordRequest) returns (UpdateAdminPasswordResponse);
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  int64 expires_at = 2;
+  int64 admin_id = 3;
+}
+
+message GetAdminRequest {
+  int64 admin_id = 1;
+}
+
+message GetAdminResponse {
+  int64 admin_id = 1;
+  string email = 2;
+  string nickname = 3;
+  string avatar_url = 4;
+  bool is_super_admin = 5;
+}
+
+message ChangePasswordRequest {
+  int64 admin_id = 1;
+  string current_password = 2;
+  string new_password = 3;
+}
+
+message ChangePasswordResponse {
+  string message = 1;
+}
+
+message AdminSummary {
+  int64 admin_id = 1;
+  string email = 2;
+  string nickname = 3;
+  string avatar_url = 4;
+  bool is_super_admin = 5;
+}
+
+message ListAdminsRequest {
+  int64 requester_admin_id = 1;
+}
+
+message ListAdminsResponse {
+  repeated AdminSummary items = 1;
+}
+
+message CreateAdminRequest {
+  int64 requester_admin_id = 1;
+  string email = 2;
+  string password = 3;
+  string nickname = 4;
+  string avatar_url = 5;
+  bool is_super_admin = 6;
+}
+
+message CreateAdminResponse {
+  AdminSummary admin = 1;
+}
+
+message UpdateAdminPasswordRequest {
+  int64 requester_admin_id = 1;
+  int64 target_admin_id = 2;
+  string new_password = 3;
+}
+
+message UpdateAdminPasswordResponse {
+  string message = 1;
+}

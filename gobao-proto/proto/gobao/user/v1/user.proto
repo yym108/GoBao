@@ -1,0 +1,248 @@
+syntax = "proto3";
+
+package gobao.user.v1;
+
+option go_package = "github.com/yym108/gobao-proto/gen/go/gobao/user/v1;userv1";
+
+import "google/protobuf/timestamp.proto";
+
+service UserService {
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc VerifyToken(VerifyTokenRequest) returns (VerifyTokenResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  // FindUserByEmail 按邮箱精确查找用户，供后台订单按买家邮箱筛选时解析 user_id。
+  rpc FindUserByEmail(FindUserByEmailRequest) returns (FindUserByEmailResponse);
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc UploadAvatar(UploadAvatarRequest) returns (UploadAvatarResponse);
+  rpc ListAddresses(ListAddressesRequest) returns (ListAddressesResponse);
+  rpc GetAddress(GetAddressRequest) returns (GetAddressResponse);
+  rpc CreateAddress(CreateAddressRequest) returns (CreateAddressResponse);
+  rpc UpdateAddress(UpdateAddressRequest) returns (UpdateAddressResponse);
+  rpc DeleteAddress(DeleteAddressRequest) returns (DeleteAddressResponse);
+  rpc SetDefaultAddress(SetDefaultAddressRequest) returns (SetDefaultAddressResponse);
+  rpc SendPasswordResetCode(SendPasswordResetCodeRequest) returns (SendPasswordResetCodeResponse);
+  // GetPasswordResetCode 读取当前用户待用的改密验证码。仅供开发/演示环境联调，生产必须关闭。
+  rpc GetPasswordResetCode(GetPasswordResetCodeRequest) returns (GetPasswordResetCodeResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  rpc SendPasswordResetCodeByEmail(SendPasswordResetCodeByEmailRequest) returns (SendPasswordResetCodeByEmailResponse);
+  rpc ResetPasswordByEmail(ResetPasswordByEmailRequest) returns (ResetPasswordByEmailResponse);
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string nickname = 3;
+}
+
+message RegisterResponse {
+  int64 user_id = 1;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string access_token = 1;
+  int64 expires_at = 2;
+  int64 user_id = 3;
+}
+
+message VerifyTokenRequest {
+  string access_token = 1;
+}
+
+message VerifyTokenResponse {
+  int64 user_id = 1;
+  string email = 2;
+}
+
+message GetUserRequest {
+  int64 user_id = 1;
+}
+
+message GetUserResponse {
+  int64 user_id = 1;
+  string email = 2;
+  string nickname = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message FindUserByEmailRequest {
+  string email = 1;
+}
+
+message FindUserByEmailResponse {
+  bool found = 1;
+  int64 user_id = 2;
+  string email = 3;
+  string nickname = 4;
+}
+
+message GetProfileRequest {
+  int64 user_id = 1;
+}
+
+message GetProfileResponse {
+  int64 user_id = 1;
+  string email = 2;
+  string nickname = 3;
+  string avatar_url = 4;
+}
+
+message UpdateProfileRequest {
+  int64 user_id = 1;
+  string nickname = 2;
+  string avatar_url = 3;
+}
+
+message UpdateProfileResponse {
+  int64 user_id = 1;
+  string email = 2;
+  string nickname = 3;
+  string avatar_url = 4;
+}
+
+message UploadAvatarRequest {
+  int64 user_id = 1;
+  string file_name = 2;   // 原始文件名，用于推断扩展名
+  string mime_type = 3;   // 图片 MIME 类型
+  bytes content = 4;      // 裁剪后的图片二进制内容
+}
+
+message UploadAvatarResponse {
+  int64 user_id = 1;
+  string email = 2;
+  string nickname = 3;
+  string avatar_url = 4;  // 上传并落库后的新头像地址
+}
+
+message Address {
+  int64 id = 1;
+  int64 user_id = 2;
+  string receiver_name = 3;
+  string receiver_phone = 4;
+  string province = 5;
+  string city = 6;
+  string district = 7;
+  string address_line = 8;
+  string postal_code = 9;
+  bool is_default = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+message ListAddressesRequest {
+  int64 user_id = 1;
+}
+
+message ListAddressesResponse {
+  repeated Address addresses = 1;
+}
+
+message GetAddressRequest {
+  int64 user_id = 1;
+  int64 address_id = 2;
+}
+
+message GetAddressResponse {
+  Address address = 1;
+}
+
+message CreateAddressRequest {
+  int64 user_id = 1;
+  string receiver_name = 2;
+  string receiver_phone = 3;
+  string province = 4;
+  string city = 5;
+  string district = 6;
+  string address_line = 7;
+  string postal_code = 8;
+  bool is_default = 9;
+}
+
+message CreateAddressResponse {
+  Address address = 1;
+}
+
+message UpdateAddressRequest {
+  int64 user_id = 1;
+  int64 address_id = 2;
+  string receiver_name = 3;
+  string receiver_phone = 4;
+  string province = 5;
+  string city = 6;
+  string district = 7;
+  string address_line = 8;
+  string postal_code = 9;
+  bool is_default = 10;
+}
+
+message UpdateAddressResponse {
+  Address address = 1;
+}
+
+message DeleteAddressRequest {
+  int64 user_id = 1;
+  int64 address_id = 2;
+}
+
+message DeleteAddressResponse {
+  string message = 1;
+}
+
+message SetDefaultAddressRequest {
+  int64 user_id = 1;
+  int64 address_id = 2;
+}
+
+message SetDefaultAddressResponse {
+  Address address = 1;
+}
+
+message SendPasswordResetCodeRequest {
+  int64 user_id = 1;
+}
+
+message SendPasswordResetCodeResponse {
+  string message = 1;
+}
+
+message GetPasswordResetCodeRequest {
+  int64 user_id = 1;
+}
+
+message GetPasswordResetCodeResponse {
+  string code = 1; // 当前用户待用的改密验证码，仅开发/演示环境返回
+}
+
+message ChangePasswordRequest {
+  int64 user_id = 1;
+  string code = 2;
+  string new_password = 3;
+}
+
+message ChangePasswordResponse {
+  string message = 1;
+}
+
+message SendPasswordResetCodeByEmailRequest {
+  string email = 1;
+}
+
+message SendPasswordResetCodeByEmailResponse {
+  string message = 1;
+}
+
+message ResetPasswordByEmailRequest {
+  string email = 1;
+  string code = 2;
+  string new_password = 3;
+}
+
+message ResetPasswordByEmailResponse {
+  string message = 1;
+}

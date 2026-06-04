@@ -1,0 +1,391 @@
+syntax = "proto3";
+
+package gobao.product.v1;
+
+option go_package = "github.com/yym108/gobao-proto/gen/go/gobao/product/v1;productv1";
+
+// ProductService —— 商品/类目/库存的统一 gRPC 服务。
+// 库存扣减/回补(DeductStock/RestoreStock)仅供 Order 服务内部 gRPC 调用,不经 Gateway。
+service ProductService {
+  // ---------- 商品 ----------
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
+
+  // ---------- 商品组 ----------
+  rpc CreateProductGroup(CreateProductGroupRequest) returns (CreateProductGroupResponse);
+  rpc ListProductGroups(ListProductGroupsRequest) returns (ListProductGroupsResponse);
+  rpc UpdateProductGroup(UpdateProductGroupRequest) returns (UpdateProductGroupResponse);
+  rpc DeleteProductGroup(DeleteProductGroupRequest) returns (DeleteProductGroupResponse);
+
+  // ---------- 类目 ----------
+  rpc CreateCategory(CreateCategoryRequest) returns (CreateCategoryResponse);
+  rpc ListCategories(ListCategoriesRequest) returns (ListCategoriesResponse);
+  rpc UpdateCategory(UpdateCategoryRequest) returns (UpdateCategoryResponse);
+  rpc DeleteCategory(DeleteCategoryRequest) returns (DeleteCategoryResponse);
+
+  // ---------- 秒杀活动 ----------
+  rpc GetSeckillActivity(GetSeckillActivityRequest) returns (GetSeckillActivityResponse);
+  rpc PrewarmSeckill(PrewarmSeckillRequest) returns (PrewarmSeckillResponse);
+
+  // ---------- 库存 ----------
+  rpc UpdateStock(UpdateStockRequest) returns (UpdateStockResponse);
+  // ---------- 库存(仅内部 gRPC) ----------
+  rpc DeductStock(DeductStockRequest) returns (DeductStockResponse);
+  rpc RestoreStock(RestoreStockRequest) returns (RestoreStockResponse);
+
+  // ---------- 媒体后台管理 ----------
+  rpc UploadMedia(UploadMediaRequest) returns (UploadMediaResponse);
+  rpc BindProductGroupMedia(BindProductGroupMediaRequest) returns (BindProductGroupMediaResponse);
+  rpc BindProductMedia(BindProductMediaRequest) returns (BindProductMediaResponse);
+  rpc UpdateProductGroupMediaBinding(UpdateProductGroupMediaBindingRequest) returns (UpdateProductGroupMediaBindingResponse);
+  rpc UpdateProductMediaBinding(UpdateProductMediaBindingRequest) returns (UpdateProductMediaBindingResponse);
+  rpc DeleteProductGroupMediaBinding(DeleteProductGroupMediaBindingRequest) returns (DeleteProductGroupMediaBindingResponse);
+  rpc DeleteProductMediaBinding(DeleteProductMediaBindingRequest) returns (DeleteProductMediaBindingResponse);
+}
+
+// Product —— 商品视图模型,price 单位为分(避免浮点精度)。
+message Product {
+  int64 id = 1;
+  string name = 2;
+  string description = 3;
+  int64 price = 4;          // 单位:分
+  int64 category_id = 5;
+  string image_url = 6;
+  int32 status = 7;         // 1=上架 2=下架
+  int32 stock_quantity = 8; // 仅在 GetProduct 返回时填充
+  int64 created_at = 9;     // Unix 秒
+  int64 updated_at = 10;
+  int64 group_id = 11;
+  string spec_label = 12;
+  string spec_values_json = 13;
+  int32 sort_order = 14;
+  int32 stock_version = 15; // 仅后台库存编辑场景使用
+  string cover_image_url = 16; // 商品组列表封面图，列表卡片优先展示
+}
+
+// Category —— 商品类目。
+message Category {
+  int64 id = 1;
+  string name = 2;
+  int32 sort_order = 3;
+  int64 created_at = 4;
+  int64 updated_at = 5;
+}
+
+// ProductGroup —— 前端一个详情页对应的商品家族。
+message ProductGroup {
+  int64 id = 1;
+  string name = 2;
+  string slug = 3;
+  string hero_title = 4;
+  string hero_subtitle = 5;
+  string hero_image_url = 6;
+  int64 category_id = 7;
+  int32 status = 8;
+  int32 sort_order = 9;
+  string cover_image_url = 10;
+  repeated string spec_keys = 11; // 商品组定义的规格维度名称，子商品只能填这些维度的值
+}
+
+message CreateProductGroupRequest {
+  string name = 1;
+  string slug = 2;
+  string hero_title = 3;
+  string hero_subtitle = 4;
+  string hero_image_url = 5;
+  int64 category_id = 6;
+  int32 status = 7;
+  int32 sort_order = 8;
+  string cover_image_url = 9;
+  repeated string spec_keys = 10; // 商品组定义的规格维度名称
+}
+
+message CreateProductGroupResponse { ProductGroup group = 1; }
+
+message ListProductGroupsRequest {
+  int64 category_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message ListProductGroupsResponse {
+  repeated ProductGroup items = 1;
+  int64 total = 2;
+}
+
+message UpdateProductGroupRequest {
+  int64 id = 1;
+  string name = 2;
+  string slug = 3;
+  string hero_title = 4;
+  string hero_subtitle = 5;
+  string hero_image_url = 6;
+  int64 category_id = 7;
+  int32 status = 8;
+  int32 sort_order = 9;
+  string cover_image_url = 10;
+  repeated string spec_keys = 11; // 商品组定义的规格维度名称
+}
+
+message UpdateProductGroupResponse { ProductGroup group = 1; }
+
+message DeleteProductGroupRequest { int64 id = 1; }
+message DeleteProductGroupResponse {}
+
+// ProductVariant —— 同一商品组下的独立商品版本快照。
+message ProductVariant {
+  int64 id = 1;
+  string spec_label = 2;
+  string spec_values_json = 3;
+  string image_url = 4;
+  int64 price = 5;
+  int32 stock_quantity = 6;
+  int32 status = 7;
+}
+
+// ProductMedia —— 商品详情页使用的图片资源。
+message ProductMedia {
+  int64 id = 1;
+  string image_url = 2;
+  string alt_text = 3;
+  int32 sort_order = 4;
+  bool is_primary = 5;
+  int64 binding_id = 6;
+  string usage_type = 7;
+}
+
+// MediaAssetInfo —— 后台媒体管理使用的资源元数据。
+message MediaAssetInfo {
+  int64 id = 1;
+  string storage_key = 2;
+  string public_url = 3;
+  string file_name = 4;
+  string mime_type = 5;
+  int64 size_bytes = 6;
+  int32 width = 7;
+  int32 height = 8;
+  string alt_text = 9;
+  int64 created_at = 10;
+  int64 updated_at = 11;
+}
+
+// ProductGroupMediaBinding —— 商品组媒体绑定结果。
+message ProductGroupMediaBinding {
+  int64 id = 1;
+  int64 group_id = 2;
+  int64 media_id = 3;
+  string usage_type = 4;
+  int32 sort_order = 5;
+  bool is_primary = 6;
+  MediaAssetInfo media = 7;
+}
+
+// ProductMediaBinding —— 独立商品媒体绑定结果。
+message ProductMediaBinding {
+  int64 id = 1;
+  int64 product_id = 2;
+  int64 media_id = 3;
+  string usage_type = 4;
+  int32 sort_order = 5;
+  bool is_primary = 6;
+  MediaAssetInfo media = 7;
+}
+
+// SeckillActivity —— 秒杀活动视图模型。
+message SeckillActivity {
+  int64 id = 1;
+  int64 product_id = 2;
+  string title = 3;
+  int64 seckill_price = 4;   // 单位:分
+  int32 seckill_stock = 5;   // 活动库存
+  int32 status = 6;          // 1=draft 2=active 3=disabled
+  int64 start_at = 7;        // Unix 秒
+  int64 end_at = 8;          // Unix 秒
+  int64 created_at = 9;      // Unix 秒
+  int64 updated_at = 10;     // Unix 秒
+}
+
+// ---------- 商品请求/响应 ----------
+message CreateProductRequest {
+  string name = 1;
+  string description = 2;
+  int64 price = 3;
+  int64 category_id = 4;
+  string image_url = 5;
+  int32 initial_stock = 6;
+  int64 group_id = 7;
+  string spec_label = 8;
+  string spec_values_json = 9;
+  int32 sort_order = 10;
+  int32 status = 11;
+}
+message CreateProductResponse { Product product = 1; }
+
+message GetProductRequest { int64 id = 1; }
+message GetProductResponse {
+  Product product = 1;
+  ProductGroup group = 2;
+  repeated ProductVariant variants = 3;
+  int64 default_product_id = 4;
+  repeated ProductMedia group_medias = 5;
+  repeated ProductMedia product_medias = 6;
+  repeated ProductMedia resolved_medias = 7;
+}
+
+message ListProductsRequest {
+  int64 category_id = 1; // 0 表示不过滤
+  int32 page = 2;        // 从 1 开始
+  int32 page_size = 3;   // <=0 取默认 20,>100 截到 100
+}
+message ListProductsResponse {
+  repeated Product items = 1;
+  int64 total = 2;
+}
+
+message UpdateProductRequest {
+  int64 id = 1;
+  string name = 2;
+  string description = 3;
+  int64 price = 4;
+  int64 category_id = 5;
+  string image_url = 6;
+  int32 status = 7;
+  int64 group_id = 8;
+  string spec_label = 9;
+  string spec_values_json = 10;
+  int32 sort_order = 11;
+}
+message UpdateProductResponse { Product product = 1; }
+
+message DeleteProductRequest { int64 id = 1; }
+message DeleteProductResponse {}
+
+// ---------- 类目请求/响应 ----------
+message CreateCategoryRequest {
+  string name = 1;
+  int32 sort_order = 2;
+}
+message CreateCategoryResponse { Category category = 1; }
+
+message ListCategoriesRequest {}
+message ListCategoriesResponse { repeated Category items = 1; }
+
+message UpdateCategoryRequest {
+  int64 id = 1;
+  string name = 2;
+  int32 sort_order = 3;
+}
+message UpdateCategoryResponse { Category category = 1; }
+
+message DeleteCategoryRequest { int64 id = 1; }
+message DeleteCategoryResponse {}
+
+// ---------- 秒杀活动请求/响应 ----------
+message GetSeckillActivityRequest { int64 id = 1; }
+message GetSeckillActivityResponse { SeckillActivity activity = 1; }
+
+message PrewarmSeckillRequest { int64 id = 1; }
+message PrewarmSeckillResponse {
+  int64 activity_id = 1;
+  string meta_key = 2;
+  string stock_key = 3;
+}
+
+// ---------- 库存(商家)请求/响应 ----------
+message UpdateStockRequest {
+  int64 product_id = 1;
+  int32 quantity = 2;          // 目标库存数量,必须 >= 0
+  int32 expected_version = 3;  // 商家读取时的版本号,用于 CAS 防并发
+}
+message UpdateStockResponse {
+  int32 stock_quantity = 1;    // 设置后的库存数量(= request.quantity)
+  int32 version = 2;           // 设置后的版本号
+}
+
+// ---------- 库存(内部)请求/响应 ----------
+message DeductStockRequest {
+  int64 product_id = 1;
+  int32 quantity = 2;
+}
+message DeductStockResponse {
+  int32 remaining = 1; // 扣减后剩余库存
+}
+
+message RestoreStockRequest {
+  int64 product_id = 1;
+  int32 quantity = 2;
+}
+message RestoreStockResponse {
+  int32 remaining = 1;
+}
+
+// ---------- 媒体后台请求/响应 ----------
+message UploadMediaRequest {
+  string folder = 1;
+  string file_name = 2;
+  string alt_text = 3;
+  string mime_type = 4;
+  bytes content = 5;
+}
+message UploadMediaResponse {
+  MediaAssetInfo media = 1;
+}
+
+message BindProductGroupMediaRequest {
+  int64 group_id = 1;
+  int64 media_id = 2;
+  string usage_type = 3;
+  int32 sort_order = 4;
+  bool is_primary = 5;
+}
+message BindProductGroupMediaResponse {
+  ProductGroupMediaBinding binding = 1;
+}
+
+message BindProductMediaRequest {
+  int64 product_id = 1;
+  int64 media_id = 2;
+  string usage_type = 3;
+  int32 sort_order = 4;
+  bool is_primary = 5;
+}
+message BindProductMediaResponse {
+  ProductMediaBinding binding = 1;
+}
+
+message UpdateProductGroupMediaBindingRequest {
+  int64 group_id = 1;
+  int64 binding_id = 2;
+  string usage_type = 3;
+  int32 sort_order = 4;
+  bool is_primary = 5;
+}
+message UpdateProductGroupMediaBindingResponse {
+  ProductGroupMediaBinding binding = 1;
+}
+
+message UpdateProductMediaBindingRequest {
+  int64 product_id = 1;
+  int64 binding_id = 2;
+  string usage_type = 3;
+  int32 sort_order = 4;
+  bool is_primary = 5;
+}
+message UpdateProductMediaBindingResponse {
+  ProductMediaBinding binding = 1;
+}
+
+message DeleteProductGroupMediaBindingRequest {
+  int64 group_id = 1;
+  int64 binding_id = 2;
+}
+message DeleteProductGroupMediaBindingResponse {}
+
+message DeleteProductMediaBindingRequest {
+  int64 product_id = 1;
+  int64 binding_id = 2;
+}
+message DeleteProductMediaBindingResponse {}

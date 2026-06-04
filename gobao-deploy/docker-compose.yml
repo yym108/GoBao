@@ -1,0 +1,245 @@
+name: gobao
+services:
+  mysql-user:
+    image: mysql:8.4
+    environment: { MYSQL_ROOT_PASSWORD: root, MYSQL_DATABASE: user }
+    ports: ["${MYSQL_USER_PORT:-3307}:3306"]
+    volumes:
+      - mysql-user-data:/var/lib/mysql
+      - ./sql/init-user.sql:/docker-entrypoint-initdb.d/init.sql
+  mysql-product:
+    image: mysql:8.4
+    environment: { MYSQL_ROOT_PASSWORD: root, MYSQL_DATABASE: product }
+    ports: ["${MYSQL_PRODUCT_PORT:-3308}:3306"]
+    volumes:
+      - mysql-product-data:/var/lib/mysql
+      - ./sql/init-product.sql:/docker-entrypoint-initdb.d/init.sql
+  mysql-order:
+    image: mysql:8.4
+    environment: { MYSQL_ROOT_PASSWORD: root, MYSQL_DATABASE: order }
+    ports: ["${MYSQL_ORDER_PORT:-3309}:3306"]
+    volumes:
+      - mysql-order-data:/var/lib/mysql
+      - ./sql/init-order.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+  mysql-gateway:
+    image: mysql:8.4
+    environment: { MYSQL_ROOT_PASSWORD: root, MYSQL_DATABASE: gateway }
+    ports: ["${MYSQL_GATEWAY_PORT:-3311}:3306"]
+    volumes:
+      - mysql-gateway-data:/var/lib/mysql
+      - ./sql/init-gateway.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+  mysql-admin:
+    image: mysql:8.4
+    environment: { MYSQL_ROOT_PASSWORD: root, MYSQL_DATABASE: admin }
+    ports: ["${MYSQL_ADMIN_PORT:-3312}:3306"]
+    volumes:
+      - mysql-admin-data:/var/lib/mysql
+      - ./sql/init-admin.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+  mysql-payment:
+    image: mysql:8.4
+    environment: { MYSQL_ROOT_PASSWORD: root, MYSQL_DATABASE: payment }
+    ports: ["${MYSQL_PAYMENT_PORT:-3310}:3306"]
+    volumes:
+      - mysql-payment-data:/var/lib/mysql
+      - ./sql/init-payment.sql:/docker-entrypoint-initdb.d/init.sql
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["${REDIS_PORT:-6379}:6379"]
+    volumes:
+      - redis-data:/data
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js", "-sd", "/data"]
+    volumes: ["nats-data:/data"]
+    ports: ["${NATS_PORT:-4222}:4222", "${NATS_MONITOR_PORT:-8222}:8222"]
+  prometheus:
+    image: prom/prometheus:latest
+    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml"]
+    ports: ["${PROMETHEUS_PORT:-9090}:9090"]
+
+  user:
+    build:
+      context: ${GOBAO_BUILD_CONTEXT:-..}
+      dockerfile: gobao-user/Dockerfile
+    environment:
+      USER_HTTP_ADDR: ":8080"
+      USER_GRPC_ADDR: ":9090"
+      USER_MYSQL_DSN: "root:root@tcp(mysql-user:3306)/user?charset=utf8mb4&parseTime=True&loc=Local"
+      USER_REDIS_ADDR: "redis:6379"
+      USER_JWT_SECRET: "gobao-dev-secret-change-in-prod"
+      USER_JWT_EXPIRY: "24h"
+      USER_AVATAR_ROOT: "${USER_AVATAR_ROOT:-/data/gobao/user-avatars}"
+      USER_AVATAR_BASE_URL: "${USER_AVATAR_BASE_URL:-/avatars}"
+    depends_on: [mysql-user, redis, nats]
+    volumes:
+      - ./runtime/user-avatars:/data/gobao/user-avatars
+    ports: ["${USER_HTTP_PORT:-18001}:8080", "${USER_GRPC_PORT:-19001}:9090"]
+  admin:
+    build:
+      context: ${GOBAO_BUILD_CONTEXT:-..}
+      dockerfile: gobao-admin/Dockerfile
+    environment:
+      ADMIN_HTTP_ADDR: ":8080"
+      ADMIN_GRPC_ADDR: ":9090"
+      ADMIN_LOG_LEVEL: "info"
+      ADMIN_MYSQL_DSN: "root:root@tcp(mysql-admin:3306)/admin?charset=utf8mb4&parseTime=True&loc=Local"
+      ADMIN_JWT_SECRET: "gobao-dev-secret-change-in-prod"
+      ADMIN_JWT_EXPIRY: "24h"
+    depends_on:
+      mysql-admin:
+        condition: service_healthy
+    ports: ["${ADMIN_HTTP_PORT:-18005}:8080", "${ADMIN_GRPC_PORT:-19005}:9090"]
+  product:
+    build:
+      context: ${GOBAO_BUILD_CONTEXT:-..}
+      dockerfile: gobao-product/Dockerfile
+    environment:
+      PRODUCT_HTTP_ADDR: ":8080"
+      PRODUCT_GRPC_ADDR: ":9090"
+      PRODUCT_LOG_LEVEL: "info"
+      PRODUCT_MYSQL_DSN: "root:root@tcp(mysql-product:3306)/product?charset=utf8mb4&parseTime=True&loc=Local"
+      PRODUCT_REDIS_ADDR: "redis:6379"
+      PRODUCT_REDIS_DB: "0"
+      PRODUCT_MEDIA_ROOT: "${PRODUCT_MEDIA_ROOT:-/data/gobao/product-media}"
+      PRODUCT_MEDIA_BASE_URL: "${PRODUCT_MEDIA_BASE_URL:-/media}"
+    depends_on: [mysql-product, redis, nats]
+    volumes:
+      - ./runtime/product-media:/data/gobao/product-media
+    ports: ["${PRODUCT_HTTP_PORT:-18002}:8080", "${PRODUCT_GRPC_PORT:-19002}:9090"]
+  order:
+    build:
+      context: ${GOBAO_BUILD_CONTEXT:-..}
+      dockerfile: gobao-order/Dockerfile
+    environment:
+      ORDER_HTTP_ADDR: ":8080"
+      ORDER_GRPC_ADDR: ":9090"
+      ORDER_LOG_LEVEL: "info"
+      ORDER_MYSQL_DSN: "root:root@tcp(mysql-order:3306)/order?charset=utf8mb4&parseTime=True&loc=Local"
+      ORDER_PRODUCT_GRPC_ADDR: "product:9090"
+      ORDER_REDIS_ADDR: "redis:6379"
+      ORDER_REDIS_DB: "0"
+      ORDER_NATS_URL: "nats://nats:4222"
+      ORDER_NATS_STREAM: "SECKILL"
+      ORDER_SECKILL_ORDER_SUBJECT: "seckill.order"
+      ORDER_SECKILL_ORDER_CONSUMER: "order-mock"
+      ORDER_ORDER_CREATED_SUBJECT: "order.created"
+      ORDER_ORDER_CANCELLED_SUBJECT: "order.cancelled"
+      ORDER_PAYMENT_PAID_SUBJECT: "payment.paid"
+      ORDER_PAYMENT_FAILED_SUBJECT: "payment.failed"
+    depends_on:
+      mysql-order:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      nats:
+        condition: service_started
+    ports: ["${ORDER_HTTP_PORT:-18003}:8080"]
+  payment:
+    build:
+      context: ${GOBAO_BUILD_CONTEXT:-..}
+      dockerfile: gobao-payment/Dockerfile
+    environment:
+      PAYMENT_HTTP_ADDR: ":8080"
+      PAYMENT_GRPC_ADDR: ":9090"
+      PAYMENT_LOG_LEVEL: "info"
+      PAYMENT_MYSQL_DSN: "root:root@tcp(mysql-payment:3306)/payment?charset=utf8mb4&parseTime=True&loc=Local"
+      PAYMENT_NATS_URL: "nats://nats:4222"
+      PAYMENT_NATS_STREAM: "SECKILL"
+      PAYMENT_ORDER_CREATED_SUBJECT: "order.created"
+      PAYMENT_ORDER_CREATED_CONSUMER: "payment-mock"
+      PAYMENT_PAYMENT_PAID_SUBJECT: "payment.paid"
+      PAYMENT_PAYMENT_FAILED_SUBJECT: "payment.failed"
+    depends_on: [mysql-payment, redis, nats]
+    ports: ["${PAYMENT_HTTP_PORT:-18004}:8080"]
+  gateway:
+    build:
+      context: ${GOBAO_BUILD_CONTEXT:-..}
+      dockerfile: gobao-gateway/Dockerfile
+    environment:
+      GATEWAY_ADDR: ":8080"
+      GATEWAY_USER_GRPC_ADDR: "user:9090"
+      GATEWAY_ADMIN_GRPC_ADDR: "admin:9090"
+      GATEWAY_PRODUCT_GRPC_ADDR: "product:9090"
+      GATEWAY_ORDER_GRPC_ADDR: "order:9090"
+      GATEWAY_PAYMENT_GRPC_ADDR: "payment:9090"
+      GATEWAY_MYSQL_DSN: "root:root@tcp(mysql-gateway:3306)/gateway?charset=utf8mb4&parseTime=True&loc=Local"
+      GATEWAY_REDIS_ADDR: "redis:6379"
+      GATEWAY_REDIS_DB: "0"
+      GATEWAY_NATS_URL: "nats://nats:4222"
+      GATEWAY_NATS_STREAM: "SECKILL"
+      GATEWAY_SECKILL_SUBJECT: "seckill.order"
+      GATEWAY_JWT_SECRET: "gobao-dev-secret-change-in-prod"
+      GATEWAY_LOG_LEVEL: "info"
+      # 开发/演示便利接口（如读回改密验证码）总开关，生产环境必须设为 false
+      GATEWAY_EXPOSE_DEV_ENDPOINTS: "${GATEWAY_EXPOSE_DEV_ENDPOINTS:-false}"
+    depends_on:
+      user:
+        condition: service_started
+      admin:
+        condition: service_started
+      product:
+        condition: service_started
+      order:
+        condition: service_started
+      payment:
+        condition: service_started
+      mysql-gateway:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      nats:
+        condition: service_started
+    ports: ["${GATEWAY_HTTP_PORT:-18000}:8080"]
+  web:
+    build:
+      context: ${GOBAO_BUILD_CONTEXT:-..}/gobao-web
+      dockerfile: Dockerfile
+    depends_on:
+      gateway:
+        condition: service_started
+      product:
+        condition: service_started
+      user:
+        condition: service_started
+    ports: ["${WEB_PORT:-5173}:80"]
+  admin-web:
+    build:
+      context: ${GOBAO_BUILD_CONTEXT:-..}/gobao-admin-web
+      dockerfile: Dockerfile
+    depends_on:
+      gateway:
+        condition: service_started
+      product:
+        condition: service_started
+      user:
+        condition: service_started
+    ports: ["${ADMIN_WEB_PORT:-5174}:80"]
+
+volumes:
+  nats-data: {}
+  mysql-user-data: {}
+  mysql-product-data: {}
+  mysql-order-data: {}
+  mysql-gateway-data: {}
+  mysql-admin-data: {}
+  mysql-payment-data: {}
+  redis-data: {}

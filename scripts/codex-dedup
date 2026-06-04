@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TOOL_DIR="$ROOT_DIR/tools/codex-dedup-proxy"
+TMP_BASE="${TMPDIR:-/tmp}"
+
+export GOWORK=off
+export GOCACHE="$TMP_BASE/go-build-codex-dedup-proxy"
+export GOMODCACHE="$TMP_BASE/go-mod-cache-codex-dedup-proxy"
+export GOPROXY=off
+
+cd "$TOOL_DIR"
+exec go run . run "$@"

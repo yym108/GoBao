@@ -1,0 +1,18 @@
+global: { scrape_interval: 5s }
+scrape_configs:
+  # 各服务均在容器内 :8080 暴露 /metrics：
+  # - gateway 暴露 HTTP RED 指标（http_server_*）
+  # - user/admin/product/order/payment 暴露 gRPC RED 指标（grpc_server_*）
+  # 另外都包含 Go runtime 与进程指标（go_*、process_*）。
+  - job_name: gateway
+    static_configs: [{ targets: ["gateway:8080"] }]
+  - job_name: user
+    static_configs: [{ targets: ["user:8080"] }]
+  - job_name: admin
+    static_configs: [{ targets: ["admin:8080"] }]
+  - job_name: product
+    static_configs: [{ targets: ["product:8080"] }]
+  - job_name: order
+    static_configs: [{ targets: ["order:8080"] }]
+  - job_name: payment
+    static_configs: [{ targets: ["payment:8080"] }]

@@ -1,0 +1,12 @@
+go 1.26.2
+
+use (
+	./gobao-admin
+	./gobao-gateway
+	./gobao-order
+	./gobao-payment
+	./gobao-pkg
+	./gobao-product
+	./gobao-proto
+	./gobao-user
+)

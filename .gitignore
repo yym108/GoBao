@@ -1,0 +1,34 @@
+go.work
+go.work.sum
+.DS_Store
+.idea/
+.env
+*.env.local
+.superpowers/
+gobao-web/node_modules/
+gobao-web/dist/
+gobao-admin-web/node_modules/
+gobao-admin-web/dist/
+gobao-admin-web/*.tsbuildinfo
+tools/codex-dedup-proxy/codex-dedup-proxy
+docs/A0801051040-Web开发技术-实验指导书-2026.docx
+docs/codexPlan/
+docs/frontend-current-state-2026-05-11.md
+docs/i0-foundation-summary.md
+docs/i1-user-auth-summary.md
+docs/i2a-product-stock-summary.md
+docs/i2b-seckill-prewarm-summary.md
+docs/superpowers/
+
+# nested repo metadata
+gobao-*/.git/
+
+# local build artifacts
+gobao-admin/server
+gobao-gateway/server
+gobao-order/server
+gobao-payment/server
+gobao-product/server
+gobao-user/server
+gobao-*/.DS_Store
+gobao-deploy/runtime/

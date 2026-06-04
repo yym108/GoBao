@@ -1,0 +1,127 @@
+syntax = "proto3";
+
+package gobao.order.v1;
+
+option go_package = "github.com/yym108/gobao-proto/gen/go/gobao/order/v1;orderv1";
+
+// OrderService —— 订单服务的 gRPC 接口。
+// I3 当前先开放最小创建订单能力，后续再补充查单、取消和列表等 RPC。
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+
+  // 后台管理员订单能力：跨用户查询全部订单、查任意订单详情、关闭任意未支付订单。
+  rpc AdminListOrders(AdminListOrdersRequest) returns (ListOrdersResponse);
+  rpc AdminGetOrder(AdminGetOrderRequest) returns (GetOrderResponse);
+  rpc AdminCancelOrder(AdminCancelOrderRequest) returns (CancelOrderResponse);
+}
+
+// AdminListOrdersRequest —— 管理员分页查询全部订单请求。
+// status 为空表示不过滤状态；user_id 为 0 表示不过滤用户。
+message AdminListOrdersRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string status = 3;
+  int64 user_id = 4;
+}
+
+// AdminGetOrderRequest —— 管理员按订单 ID 查询任意订单。
+message AdminGetOrderRequest {
+  int64 order_id = 1;
+}
+
+// AdminCancelOrderRequest —— 管理员关闭任意未支付订单。
+message AdminCancelOrderRequest {
+  int64 order_id = 1;
+}
+
+// Order —— 订单视图模型。
+message Order {
+  int64 id = 1;
+  string order_no = 2;
+  int64 user_id = 3;
+  string request_id = 4;
+  string status = 5;
+  int64 total_amount = 6;
+  int32 total_quantity = 7;
+  string receiver_name = 8;
+  string receiver_phone = 9;
+  string province = 10;
+  string city = 11;
+  string district = 12;
+  string address_line = 13;
+  string postal_code = 14;
+  int64 created_at = 15;
+  int64 updated_at = 16;
+  repeated OrderItem items = 17;
+}
+
+// OrderItem —— 订单明细视图模型。
+message OrderItem {
+  int64 id = 1;
+  int64 order_id = 2;
+  int64 product_id = 3;
+  string name = 4;
+  string image_url = 5;
+  string option_summary = 6;
+  int64 price = 7;
+  int32 quantity = 8;
+  int64 amount = 9;
+}
+
+// CreateOrderRequest —— 创建订单请求。
+message CreateOrderRequest {
+  int64 user_id = 1;
+  string request_id = 2;
+  int64 product_id = 3;
+  int32 quantity = 4;
+  string receiver_name = 5;
+  string receiver_phone = 6;
+  string province = 7;
+  string city = 8;
+  string district = 9;
+  string address_line = 10;
+  string postal_code = 11;
+}
+
+// CreateOrderResponse —— 创建订单响应。
+message CreateOrderResponse {
+  Order order = 1;
+}
+
+// GetOrderRequest —— 按订单 ID 查询订单请求。
+message GetOrderRequest {
+  int64 user_id = 1;
+  int64 order_id = 2;
+}
+
+// GetOrderResponse —— 查询单个订单响应。
+message GetOrderResponse {
+  Order order = 1;
+}
+
+// ListOrdersRequest —— 分页查询当前用户订单列表请求。
+message ListOrdersRequest {
+  int64 user_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+// ListOrdersResponse —— 分页查询当前用户订单列表响应。
+message ListOrdersResponse {
+  repeated Order items = 1;
+  int64 total = 2;
+}
+
+// CancelOrderRequest —— 取消订单请求。
+message CancelOrderRequest {
+  int64 user_id = 1;
+  int64 order_id = 2;
+}
+
+// CancelOrderResponse —— 取消订单响应。
+message CancelOrderResponse {
+  Order order = 1;
+}

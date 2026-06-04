@@ -1,0 +1,84 @@
+version: "2"
+
+run:
+  timeout: 5m
+  # Go workspace 项目需要在每个子模块目录单独运行，此配置为根目录通用配置
+
+linters:
+  enable:
+    # 基础检查
+    - govet        # 官方静态分析：格式错误、指针误用等
+    - errcheck     # 确保所有 error 都被处理
+    - staticcheck  # 深度语义分析，覆盖废弃 API 和逻辑错误
+    - ineffassign  # 检测无效赋值（赋值后从未使用）
+    - unused       # 检测未使用的代码（变量、函数、类型）
+
+    # 代码风格
+    - revive       # golint 的现代替代品，可配置规则
+    - gofmt        # 标准格式化检查
+    - misspell     # 拼写错误检查（注释和字符串）
+
+    # 性能与安全
+    - gosec        # 安全漏洞扫描（SQL 注入、弱密码、路径遍历等）
+    - bodyclose    # 确保 HTTP response.Body 被关闭
+    - noctx        # 确保 HTTP 请求携带 context
+
+    # 复杂度控制
+    - gocyclo      # 圈复杂度检查，防止函数过于复杂
+    - funlen       # 函数长度检查
+
+    # 错误处理最佳实践
+    - wrapcheck    # 确保跨包的 error 被 wrap（保留调用链信息）
+    - nilerr       # 检测 error != nil 时错误地返回 nil
+
+  settings:
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true   # 包注释非强制
+        - name: exported
+          disabled: true   # 导出符号注释非强制
+
+    gocyclo:
+      min-complexity: 15   # 圈复杂度超过 15 报警
+
+    funlen:
+      lines: 80            # 函数超过 80 行报警
+      statements: 50       # 语句超过 50 个报警
+
+    gosec:
+      excludes:
+        - G404             # 允许使用 math/rand（非密码学场景）
+
+    wrapcheck:
+      ignorePackageGlobs:
+        - "github.com/gin-gonic/gin"     # gin 框架错误无需 wrap
+        - "google.golang.org/grpc/*"     # gRPC 错误无需 wrap
+
+formatters:
+  enable:
+    - goimports  # 自动整理 import（比 gofmt 更强，自动分组）
+
+issues:
+  # 最大展示问题数（0 = 不限制）
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # 测试文件放宽限制
+    - path: _test\.go
+      linters: [errcheck, wrapcheck, funlen, gocyclo]
+    - path: _test\.go
+      text: "unused-parameter"
+
+    # protobuf 生成文件跳过
+    - path: \.pb\.go$
+      linters: [govet, staticcheck, unused, revive, wrapcheck]
+
+    # mock 文件跳过
+    - path: mock_.*\.go$
+      linters: [unused, wrapcheck]
+
+    # main.go 放宽函数长度限制（初始化逻辑通常较长）
+    - path: cmd/.*\.go$
+      linters: [funlen]

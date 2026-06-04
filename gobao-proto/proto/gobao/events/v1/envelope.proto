@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package gobao.events.v1;
+
+option go_package = "github.com/yym108/gobao-proto/gen/go/gobao/events/v1;eventsv1";
+
+import "google/protobuf/timestamp.proto";
+
+message Envelope {
+  string event_id = 1;
+  string event_type = 2;
+  string trace_id = 3;
+  google.protobuf.Timestamp occurred_at = 4;
+  bytes payload = 5;
+}
